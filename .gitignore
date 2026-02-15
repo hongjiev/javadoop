@@ -1,0 +1,14 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+public/downloads/
+
+# astro
+.astro/
+
+# macOS
+.DS_Store
+
+.claude/

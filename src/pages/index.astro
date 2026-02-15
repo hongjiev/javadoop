@@ -1,0 +1,17 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { getEntry } from 'astro:content';
+
+const indexPost = await getEntry('posts', 'index');
+
+if (!indexPost) {
+  return Astro.redirect('/post');
+}
+
+const { Content } = await indexPost.render();
+const title = indexPost.data.title;
+---
+
+<BaseLayout title={title}>
+  <Content />
+</BaseLayout>

@@ -1,0 +1,66 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+
+const posts = (await getCollection('posts', ({ id, data }) => id !== 'index.md' && data.draft !== true))
+  .sort((a, b) => b.data.date.localeCompare(a.data.date));
+---
+
+<BaseLayout title="文章列表">
+  <h1 class="page-title">文章列表</h1>
+  <ul class="post-list">
+    {posts.map((post) => (
+      <li>
+        <a href={`/post/${post.id.replace(/\.mdx?$/, '')}`}>
+          <h2>{post.data.title}</h2>
+          <time>{post.data.date}</time>
+          {post.data.description && <p>{post.data.description}</p>}
+        </a>
+      </li>
+    ))}
+  </ul>
+</BaseLayout>
+
+<style>
+  .page-title {
+    color: var(--primary-color);
+    margin-bottom: 1.5rem;
+  }
+
+  .post-list {
+    list-style: none;
+    padding: 0;
+  }
+
+  .post-list li {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--line-color);
+  }
+
+  .post-list a {
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .post-list h2 {
+    margin: 0 0 0.5rem;
+    color: var(--secondary-color);
+    font-size: 1.25rem;
+    font-weight: 500;
+  }
+
+  .post-list a:hover h2 {
+    color: var(--link-hover-color);
+  }
+
+  .post-list time {
+    color: var(--secondary-color);
+    font-size: 0.875rem;
+  }
+
+  .post-list p {
+    margin: 0.5rem 0 0;
+    color: var(--text-color);
+  }
+</style>
