@@ -2,6 +2,8 @@
 
 一个简洁的静态博客模板，基于 [Astro](https://astro.build) 构建。
 
+参考 https://javadoop.com
+
 ## 功能
 
 - Markdown / MDX 文章支持
