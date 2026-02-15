@@ -32,6 +32,8 @@ npm run preview
 
 开发服务器默认运行在 `http://localhost:4321`。
 
+![](public/snapshot.png)
+
 ## 配置
 
 编辑 `src/config.ts` 自定义站点信息：
