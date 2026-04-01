@@ -1,12 +1,12 @@
 export const siteConfig = {
   /** 站点名称，显示在导航栏和页面标题 */
-  siteName: 'My Blog',
+  siteName: 'Noah Way Now!',
   /** 站点 URL */
-  siteUrl: 'https://example.com',
+  siteUrl: 'https://noah-way-now..com',
   /** 默认 meta 描述 */
-  description: 'A personal blog',
+  description: 'Noah is on the way!',
   /** 作者名 */
-  author: 'Your Name',
+  author: 'Noah',
   /** HTML lang 属性 */
   lang: 'zh-CN',
   /** 版权信息模板，{siteName}、{year} 和 {author} 会自动替换 */

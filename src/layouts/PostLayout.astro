@@ -94,6 +94,12 @@ const copyrightText = siteConfig.copyright
 
       <!-- 主内容区 -->
       <main class="post-main" id="post-main">
+        <!-- 阅读进度恢复提示条 -->
+        <div class="reading-resume-bar" id="reading-resume-bar" style="display:none;">
+          <span id="reading-resume-text"></span>
+          <a href="#" id="reading-resume-link">跳转过去</a>
+          <button id="reading-resume-close" aria-label="关闭">&times;</button>
+        </div>
         <div class="home-link-wrapper">
           <a href="/" class="home-link">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
@@ -249,13 +255,136 @@ const copyrightText = siteConfig.copyright
     });
   }
 
+  function initReadingProgress() {
+    const slug = window.location.pathname.replace('/post/', '').replace(/\/$/, '');
+    if (!slug) return;
+
+    const storageKey = `reading-progress-${slug}`;
+    const postContent = document.getElementById('post-content');
+    if (!postContent) return;
+
+    // 如果 URL 带有 hash（从首页跳转过来），直接滚动到对应位置
+    const hash = window.location.hash.slice(1);
+    if (hash) {
+      const hashTarget = document.getElementById(hash);
+      if (hashTarget) {
+        setTimeout(() => hashTarget.scrollIntoView(), 100);
+      }
+    }
+
+    // 恢复提示（仅在非 hash 跳转时显示）
+    if (!hash) {
+      try {
+        const saved = localStorage.getItem(storageKey);
+        if (saved) {
+          const data = JSON.parse(saved);
+          const target = document.getElementById(data.headingId);
+          if (target) {
+            const bar = document.getElementById('reading-resume-bar');
+            const text = document.getElementById('reading-resume-text');
+            const link = document.getElementById('reading-resume-link');
+            const close = document.getElementById('reading-resume-close');
+            if (bar && text && link && close) {
+              text.textContent = `上次读到: ${data.headingText}`;
+              bar.style.display = 'flex';
+              link.addEventListener('click', (e) => {
+                e.preventDefault();
+                target.scrollIntoView({ behavior: 'smooth' });
+                bar.style.display = 'none';
+              });
+              close.addEventListener('click', () => {
+                bar.style.display = 'none';
+              });
+            }
+          }
+        }
+      } catch {}
+    }
+
+    // 滚动保存进度（需在同一个 h2 停留 5 秒才记录）
+    const postTitle = document.querySelector('.post-title')?.textContent || '';
+    let saveTicking = false;
+    let lastDetectedH2Id = '';
+    let dwellTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const commitRecord = (headingId: string, headingText: string) => {
+      const record = {
+        slug,
+        title: postTitle,
+        headingId,
+        headingText,
+        timestamp: Date.now()
+      };
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(record));
+        localStorage.setItem('reading-last', JSON.stringify(record));
+      } catch {}
+    };
+
+    const saveProgress = () => {
+      if (saveTicking) return;
+      saveTicking = true;
+      requestAnimationFrame(() => {
+        const scrollY = window.scrollY;
+
+        // 滑到底部，视为读完，删除记录
+        const atBottom = scrollY + window.innerHeight >= document.documentElement.scrollHeight - 100;
+        if (atBottom) {
+          if (dwellTimer) { clearTimeout(dwellTimer); dwellTimer = null; }
+          lastDetectedH2Id = '';
+          try {
+            localStorage.removeItem(storageKey);
+            const last = localStorage.getItem('reading-last');
+            if (last && JSON.parse(last).slug === slug) {
+              localStorage.removeItem('reading-last');
+            }
+          } catch {}
+          saveTicking = false;
+          return;
+        }
+
+        if (scrollY < 1000) {
+          // 滚动不足 1000px，不记录，同时清除计时器
+          if (dwellTimer) { clearTimeout(dwellTimer); dwellTimer = null; }
+          lastDetectedH2Id = '';
+          saveTicking = false;
+          return;
+        }
+
+        const h2s = postContent.querySelectorAll('h2');
+        let currentH2: Element | null = null;
+        for (let i = h2s.length - 1; i >= 0; i--) {
+          if ((h2s[i] as HTMLElement).offsetTop <= scrollY + 150) {
+            currentH2 = h2s[i];
+            break;
+          }
+        }
+
+        if (currentH2 && currentH2.id && currentH2.id !== lastDetectedH2Id) {
+          // 切换到新的 h2，重新开始计时
+          lastDetectedH2Id = currentH2.id;
+          if (dwellTimer) clearTimeout(dwellTimer);
+          const h2Id = currentH2.id;
+          const h2Text = currentH2.textContent || '';
+          dwellTimer = setTimeout(() => commitRecord(h2Id, h2Text), 5000);
+        }
+
+        saveTicking = false;
+      });
+    };
+
+    window.addEventListener('scroll', saveProgress, { passive: true });
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
     initSidebar();
     initSettings();
+    initReadingProgress();
   });
   document.addEventListener('astro:page-load', () => {
     initSidebar();
     initSettings();
+    initReadingProgress();
   });
 </script>
 
@@ -684,5 +813,52 @@ const copyrightText = siteConfig.copyright
 
   :global(html.dark) .footer {
     border-top-color: #4a4a4a;
+  }
+
+  /* 阅读进度恢复提示条 */
+  .reading-resume-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    background-color: #f0f7f4;
+    border: 1px solid var(--primary-color);
+    border-radius: 6px;
+    margin-top: 12px;
+    font-size: 14px;
+    color: var(--text-color);
+  }
+
+  :global(html.dark) .reading-resume-bar {
+    background-color: #1a2a22;
+  }
+
+  .reading-resume-bar #reading-resume-text {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .reading-resume-bar #reading-resume-link {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .reading-resume-bar #reading-resume-link:hover {
+    text-decoration: underline;
+  }
+
+  .reading-resume-bar #reading-resume-close {
+    background: none;
+    border: none;
+    font-size: 18px;
+    cursor: pointer;
+    color: var(--secondary-color);
+    padding: 0 4px;
+    line-height: 1;
   }
 </style>
